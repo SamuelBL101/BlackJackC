@@ -1,0 +1,66 @@
+﻿<Window x:Class="WPFBlackJack.WindowHra"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Blackjack Game" Height="800" Width="1200">
+    <Grid Margin="20" Background="Green">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Karty dealera -->
+            <RowDefinition Height="Auto"/>
+            <!-- Súčty dealera -->
+            <RowDefinition Height="Auto"/>
+            <!-- Karty hráča -->
+            <RowDefinition Height="Auto"/>
+            <!-- Súčty hráča -->
+            <RowDefinition Height="Auto"/>
+            <!-- Tlačidlá Hit a Stand -->
+            <RowDefinition Height="Auto"/>
+            <!-- Balancia a stávky -->
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <!-- Stĺpec pre dealera -->
+            <ColumnDefinition Width="*"/>
+            <!-- Stĺpec pre hráča -->
+        </Grid.ColumnDefinitions>
+
+        <!-- Karty dealera -->
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Dealer's Cards:" FontSize="18" HorizontalAlignment="Center" Margin="10"/>
+        <WrapPanel x:Name="DealerCardsPanel" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" Margin="10"/>
+
+        <!-- Súčty dealera -->
+        <TextBlock x:Name="DealerSum" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" FontSize="16"/>
+
+        <!-- Karty hráča -->
+        <TextBlock Grid.Row="2" Grid.Column="1" Text="Your Cards:" FontSize="18" HorizontalAlignment="Center" Margin="10"/>
+        <WrapPanel x:Name="PlayerCardsPanel" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center" Margin="10"/>
+
+        <!-- Súčty hráča -->
+        <TextBlock x:Name="PlayerSum" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" FontSize="16"/>
+
+        <!-- Tlačidlá pre Hrať a Stáť -->
+        <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
+            <Button Content="Hit" Width="100" Height="40" Margin="5" Click="HitButton_Click"/>
+            <Button Content="Stand" Width="100" Height="40" Margin="5" Click="StandButton_Click"/>
+        </StackPanel>
+
+        <!-- Balancia a stávky -->
+        <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
+            <TextBlock Text="Balance: " FontSize="18" VerticalAlignment="Center" Margin="5"/>
+            <TextBlock x:Name="BalanceText" Text="{Binding HracBalance}" FontSize="18" VerticalAlignment="Center" Margin="5"/>
+            <TextBlock Text="Bet: " FontSize="18" VerticalAlignment="Center" Margin="5"/>
+
+            <!-- ComboBox pre výber žetónov -->
+            <ComboBox x:Name="BetComboBox" Width="100" Margin="5" VerticalAlignment="Center">
+                <!-- Možnosti pre žetóny, napr. 10, 50, 100 -->
+                <ComboBoxItem Content="10"/>
+                <ComboBoxItem Content="50"/>
+                <ComboBoxItem Content="100"/>
+                <ComboBoxItem Content="200"/>
+                <ComboBoxItem Content="500"/>
+            </ComboBox>
+
+            <Button Content="Start Game" Width="120" Height="40" Margin="5" Click="StartGameButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

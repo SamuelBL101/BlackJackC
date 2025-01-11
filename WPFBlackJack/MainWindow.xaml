@@ -1,0 +1,21 @@
+﻿<Window x:Class="WPFBlackJack.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WPFBlackJack"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="300" Width="400">
+    <Grid>
+        <StackPanel>
+            <TextBlock Text="Prihlásenie do Blackjacku" FontSize="20" Margin="0,0,0,20" HorizontalAlignment="Center"/>
+            <Label Content="Používateľské meno" VerticalContentAlignment="Center" Margin="0,5" />
+            <TextBox Name="UsernameTextBox" Width="250" Margin="0,5" VerticalContentAlignment="Center" GotFocus="ClearPlaceholder" LostFocus="SetPlaceholder"></TextBox>
+            <Label Content="Heslo" Margin="0,0,0,0" VerticalContentAlignment="Center"/>
+            <PasswordBox Name="PasswordBox" Width="250" Margin="0,5" VerticalContentAlignment="Center" GotFocus="ClearPasswordPlaceholder" LostFocus="SetPasswordPlaceholder"/>
+            <Button Content="Prihlásiť sa" Width="250" Margin="0,20,0,0" Click="LoginButton_Click"/>
+            <TextBlock Name="ErrorMessage" Foreground="Red" Margin="0,5" Visibility="Collapsed" Text="Neplatné prihlasovacie údaje"/>
+
+        </StackPanel>
+    </Grid>
+</Window>
