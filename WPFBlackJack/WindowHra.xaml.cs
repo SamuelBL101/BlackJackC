@@ -21,18 +21,21 @@ namespace WPFBlackJack
 
 		private void StartGameButton_Click(object sender, RoutedEventArgs e)
 		{
-			if (int.TryParse(BetTextBox.Text, out int betAmount))
+			if (BetComboBox.SelectedItem is ComboBoxItem selectedItem && int.TryParse(selectedItem.Content.ToString(), out int betAmount))
 			{
 				_blackjack.Rozdanie(betAmount);
+
+				// Zobrazenie kariet hráča (prvý balík) a dealera
+				ZobrazKarty(_blackjack.HracKarty[0], PlayerCardsPanel);
+				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
+
+				// Aktualizácia tlačidla Split
+				AktualizujSplitTlačidlo();
 			}
 			else
 			{
-				MessageBox.Show("Zadajte platnú hodnotu stávky!", "Chyba", MessageBoxButton.OK, MessageBoxImage.Warning);
+				MessageBox.Show("Vyberte platnú hodnotu stávky!", "Chyba", MessageBoxButton.OK, MessageBoxImage.Warning);
 			}
-
-			ZobrazKarty(_blackjack.HracKarty, PlayerCardsPanel);
-			ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
-
 
 		}
 		private void ZobrazKarty(List<Karta> karty, WrapPanel panel)
@@ -53,7 +56,7 @@ namespace WPFBlackJack
 
 			if (panel == PlayerCardsPanel)
 			{
-				PlayerSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.HracKarty)}";
+				PlayerSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.HracKarty[0])}";
 			}
 			else if (panel == DealerCardsPanel)
 			{
@@ -65,9 +68,11 @@ namespace WPFBlackJack
 
 		private void HitButton_Click(object sender, RoutedEventArgs e)
 		{
-			_blackjack.Hit();
-			ZobrazKarty(_blackjack.HracKarty, PlayerCardsPanel);
-			if (_blackjack.SumaKariet(_blackjack.HracKarty) > 21)
+			_blackjack.Hit(0);
+			ZobrazKarty(_blackjack.HracKarty[0], PlayerCardsPanel);
+			AktualizujSplitTlačidlo();
+
+			if (_blackjack.SumaKariet(_blackjack.HracKarty[0]) > 21)
 			{
 				MessageBox.Show("Too many! Prehral si.", "Game Over", MessageBoxButton.OK, MessageBoxImage.Warning);
 
@@ -87,41 +92,88 @@ namespace WPFBlackJack
 
 		private void StandButton_Click(object sender, RoutedEventArgs e)
 		{
-			while (_blackjack.SumaKariet(_blackjack.DealerKarty) < 17)
+			foreach (var ruka in _blackjack.HracKarty)
 			{
-				_blackjack.DealerKarty.Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
-				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
+				// Dealer ťahá karty, kým nemá minimálne 17
+				while (_blackjack.SumaKariet(_blackjack.DealerKarty) < 17)
+				{
+					_blackjack.DealerKarty.Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
+					ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
+				}
+
+				// Porovnanie výsledkov pre každú ruku
+				int playerSum = _blackjack.SumaKariet(ruka);
+				int dealerSum = _blackjack.SumaKariet(_blackjack.DealerKarty);
+
+				if (dealerSum > 21 || playerSum > dealerSum)
+				{
+					MessageBox.Show("You win!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
+					_blackjack.HracBalance += _blackjack.AktualnaStavka * 2;
+				}
+				else if (playerSum == dealerSum)
+				{
+					MessageBox.Show("It's a tie!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
+					_blackjack.HracBalance += _blackjack.AktualnaStavka;
+				}
+				else
+				{
+					MessageBox.Show("Dealer wins!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
+				}
 			}
 
-			// Získanie súčtov hráča a dealera
-			int playerSum = _blackjack.SumaKariet(_blackjack.HracKarty);
-			int dealerSum = _blackjack.SumaKariet(_blackjack.DealerKarty);
-
-			// Výsledok hry
-			if (dealerSum > 21 || playerSum > dealerSum)
-			{
-				MessageBox.Show("You win!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
-				_blackjack.HracBalance += _blackjack.AktualnaStavka * 2; // Vyhra = dvojnásobok stávky
-			}
-			else if (playerSum == dealerSum)
-			{
-				MessageBox.Show("It's a tie!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
-				_blackjack.HracBalance += _blackjack.AktualnaStavka; // Remíza = vrátenie stávky
-			}
-			else
-			{
-				MessageBox.Show("Dealer wins!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
-			}
-
-			// Aktualizácia balancie
 			BalanceText.Text = $"Balance: {_blackjack.HracBalance}";
 
-			// Reset hry
 			_blackjack.Reset();
 			PlayerCardsPanel.Children.Clear();
 			DealerCardsPanel.Children.Clear();
+			PlayerSecondHandPanel.Children.Clear();
 			PlayerSum.Text = string.Empty;
 			DealerSum.Text = string.Empty;
 		}
+
+		private void SplitButton_Click(object sender, RoutedEventArgs e)
+		{
+			if (_blackjack.JeParPrvejRuky())
+			{
+				// Rozdelenie prvej ruky na dve ruky
+				var druhaRuka = new List<Karta> { _blackjack.HracKarty[0][1] };
+				_blackjack.HracKarty[0].RemoveAt(1);
+				_blackjack.HracKarty.Add(druhaRuka);
+
+				// Rozdanie novej karty každej ruke
+				_blackjack.HracKarty[0].Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
+				_blackjack.HracKarty[1].Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
+
+				UpdateHandLayoutForSplit();
+
+				// Zobrazenie oboch rúk
+				ZobrazKarty(_blackjack.HracKarty[0], PlayerCardsPanel);
+				ZobrazKarty(_blackjack.HracKarty[1], PlayerSecondHandPanel);
+
+				// Skrytie tlačidla Split
+				SplitButton.Visibility = Visibility.Collapsed;
+			}
+		}
+
+		private void UpdateHandLayoutForSplit()
+		{
+			PlayerCardsPanel.HorizontalAlignment = HorizontalAlignment.Left;
+			PlayerSecondHandPanel.Visibility = Visibility.Visible;
+			PlayerSecondHandPanel.HorizontalAlignment = HorizontalAlignment.Right;
+			PlayerSum2.Visibility = Visibility.Visible;
+		}
+
+		private void AktualizujSplitTlačidlo()
+		{
+			if (_blackjack.JeParPrvejRuky())
+			{
+				SplitButton.Visibility = Visibility.Visible;
+			}
+			else
+			{
+				SplitButton.Visibility = Visibility.Collapsed;
+			}
+		}
+
 	}
 }

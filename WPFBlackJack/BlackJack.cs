@@ -20,7 +20,7 @@ namespace WPFBlackJack
 			set => SetField(ref _aktualnaStavka, value);
 		}
 
-		public List<Karta> HracKarty { get; set; }
+		public List<List<Karta>> HracKarty { get; set; }
 		public List<Karta> DealerKarty { get; set; }
 		public List<Karta> PotKarty { get; set; }
 
@@ -28,7 +28,7 @@ namespace WPFBlackJack
 
 		public Blackjack()
 		{
-			HracKarty = new List<Karta>();
+			HracKarty = new List<List<Karta>>();
 			DealerKarty = new List<Karta>();
 			PotKarty = new List<Karta>();
 			HracBalance = 1000; 
@@ -81,9 +81,9 @@ namespace WPFBlackJack
 			return suma;
 		}
 
-		public void Hit()
+		public void Hit(int rukaIndex = 0)
 		{
-			HracKarty.Add(VytiahniKartu(PotKarty));
+			HracKarty[rukaIndex].Add(VytiahniKartu(PotKarty));
 		}
 
 		public void Rozdanie(int Stavka)
@@ -92,10 +92,38 @@ namespace WPFBlackJack
 			HracBalance -= AktualnaStavka;
 
 			var karty = PotKarty;
-			HracKarty.Add(VytiahniKartu(karty));
+			var prvaRuka = new List<Karta> { VytiahniKartu(karty), VytiahniKartu(karty) };
+			HracKarty.Add(prvaRuka);  // Prvá ruka hráča
+
 			DealerKarty.Add(VytiahniKartu(karty));
-			HracKarty.Add(VytiahniKartu(karty));
 			DealerKarty.Add(VytiahniKartu(karty));
+		}
+
+		public bool JePar(List<Karta> karty)
+		{
+			return karty.Count == 2 && karty[0].Hodnota == karty[1].Hodnota;
+		}
+		public bool JeParPrvejRuky()
+		{
+			if (HracKarty.Count > 0 && HracKarty[0].Count == 2)
+			{
+				return HracKarty[0][0].Hodnota == HracKarty[0][1].Hodnota;
+			}
+			return false;
+		}
+
+
+		public void Split()
+		{
+			if (HracKarty.Count == 1 && HracKarty[0].Count == 2 && HracKarty[0][0].Hodnota == HracKarty[0][1].Hodnota)
+			{
+				var prvaRuka = new List<Karta> { HracKarty[0][0], VytiahniKartu(PotKarty) };
+				var druhaRuka = new List<Karta> { HracKarty[0][1], VytiahniKartu(PotKarty) };
+
+				HracKarty.Clear();
+				HracKarty.Add(prvaRuka);
+				HracKarty.Add(druhaRuka);
+			}
 		}
 
 		public void Reset()
