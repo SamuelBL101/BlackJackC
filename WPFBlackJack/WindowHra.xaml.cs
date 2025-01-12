@@ -32,6 +32,8 @@ namespace WPFBlackJack
 				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
 
 				AktualizujSplitTlačidlo();
+				ZvysAktivnuRuku(); // Zvýraznenie prvej ruky po rozdelení
+
 			}
 			else
 			{
@@ -44,7 +46,6 @@ namespace WPFBlackJack
 			ZobrazKarty(_blackjack.HracKarty[0], PlayerFirstHandPanel);
 			PlayerFirstSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.HracKarty[0])}";
 
-			// Druhá ruka (ak existuje)
 			if (_blackjack.HracKarty.Count > 1)
 			{
 				PlayerSecondHandPanel.Visibility = Visibility.Visible;
@@ -89,8 +90,7 @@ namespace WPFBlackJack
 
 		private void HitButton_Click(object sender, RoutedEventArgs e)
 		{
-			if (_blackjack.AktualnaRuka < _blackjack.HracKarty.Count)
-			{
+			
 				_blackjack.HracKarty[_blackjack.AktualnaRuka].Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
 				ZobrazKartyPreRuky();
 
@@ -99,7 +99,7 @@ namespace WPFBlackJack
 					MessageBox.Show($"Hand {_blackjack.AktualnaRuka + 1} busted!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Warning);
 					StandButton_Click(sender, e); 
 				}
-			}
+			
 
 		}
 
@@ -123,25 +123,40 @@ namespace WPFBlackJack
 
 		private void StandButton_Click(object sender, RoutedEventArgs e)
 		{
-			if (_blackjack.HracKarty.Count > 1)
+			if (_blackjack.HracKarty.Count > 1 && _blackjack.AktualnaRuka < _blackjack.HracKarty.Count - 1)
 			{
 				_blackjack.AktualnaRuka++;
+				ZobrazKartyPreRuky(); // Obnov UI pre aktuálnu ruku
+				ZvysAktivnuRuku(); // Zvýraznenie novej aktívnej ruky
 
-				if (_blackjack.AktualnaRuka < _blackjack.HracKarty.Count)
-				{
-					ZobrazKartyPreRuky();
-					return;
-				}
+				return; // Ešte neskončili všetky ruky
 			}
+
+			// Ak hráč ukončil všetky ruky, nech dealer ťahá
 			while (_blackjack.SumaKariet(_blackjack.DealerKarty) < 17)
 			{
 				_blackjack.DealerKarty.Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
-				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
+				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel); // Obnov UI pre dealera
 			}
+
+			// Vyhodnoť výsledky
+			VyhodnotHru();
+
+			// Aktualizuj zostatok hráča
+			BalanceText.Text = $"Balance: {_blackjack.HracBalance}";
+
+			// Ukonči hru a resetuj stav
+			UkonciHru();
+
+		}
+
+		private void VyhodnotHru()
+		{
+			int dealerSum = _blackjack.SumaKariet(_blackjack.DealerKarty);
+
 			foreach (var ruka in _blackjack.HracKarty)
 			{
 				int playerSum = _blackjack.SumaKariet(ruka);
-				int dealerSum = _blackjack.SumaKariet(_blackjack.DealerKarty);
 
 				if (playerSum > 21)
 				{
@@ -162,9 +177,6 @@ namespace WPFBlackJack
 					MessageBox.Show("Dealer wins!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
 				}
 			}
-			BalanceText.Text = $"Balance: {_blackjack.HracBalance}";
-			UkonciHru();
-
 		}
 
 		private void UkonciHru()
@@ -179,6 +191,7 @@ namespace WPFBlackJack
 			DealerSum.Text = string.Empty;
 			PlayerSecondSum.Text = string.Empty;
 			PlayerSecondSum.Visibility = Visibility.Collapsed;
+			AktualizujSplitTlačidlo();
 
 		}
 
@@ -195,6 +208,7 @@ namespace WPFBlackJack
 				//ZobrazKartyPreRuky();
 				ZobrazKarty(_blackjack.HracKarty[0], PlayerFirstHandPanel);
 				ZobrazKarty(_blackjack.HracKarty[1], PlayerSecondHandPanel);
+				ZvysAktivnuRuku(); // Zvýraznenie prvej ruky po rozdelení
 
 				AktualizujSplitTlačidlo();
 			}
@@ -229,6 +243,20 @@ namespace WPFBlackJack
 		{
 			SplitButton.Visibility = _blackjack.JeParPrvejRuky() ? Visibility.Visible : Visibility.Collapsed;
 
+		}
+
+		private void ZvysAktivnuRuku()
+		{
+			if (_blackjack.AktualnaRuka == 0)
+			{
+				PlayerFirstHandPanel.Opacity = 1.0; // Aktívna ruka
+				PlayerSecondHandPanel.Opacity = 0.5; // Neaktívna ruka
+			}
+			else if (_blackjack.AktualnaRuka == 1)
+			{
+				PlayerFirstHandPanel.Opacity = 0.5; // Neaktívna ruka
+				PlayerSecondHandPanel.Opacity = 1.0; // Aktívna ruka
+			}
 		}
 
 	}
