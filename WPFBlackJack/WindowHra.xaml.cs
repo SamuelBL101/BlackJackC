@@ -1,6 +1,8 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Diagnostics;
 
 namespace WPFBlackJack
 {
@@ -16,25 +18,43 @@ namespace WPFBlackJack
 			InitializeComponent();
 			_blackjack = new Blackjack();
 			DataContext = _blackjack;
-
+			
 		}
 
 		private void StartGameButton_Click(object sender, RoutedEventArgs e)
 		{
+			SecondHandCall.Visibility = Visibility.Collapsed;
 			if (BetComboBox.SelectedItem is ComboBoxItem selectedItem && int.TryParse(selectedItem.Content.ToString(), out int betAmount))
 			{
-				_blackjack.Rozdanie(betAmount);
-
-				// Zobrazenie kariet hráča (prvý balík) a dealera
-				ZobrazKarty(_blackjack.HracKarty[0], PlayerCardsPanel);
+				_blackjack.Rozdanie2(betAmount);
+				_blackjack.AktualnaRuka = 0;
+				ZobrazKarty(_blackjack.HracKarty[0], PlayerFirstHandPanel);
 				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
 
-				// Aktualizácia tlačidla Split
 				AktualizujSplitTlačidlo();
 			}
 			else
 			{
 				MessageBox.Show("Vyberte platnú hodnotu stávky!", "Chyba", MessageBoxButton.OK, MessageBoxImage.Warning);
+			}
+
+		}
+		private void ZobrazKartyPreRuky()
+		{
+			ZobrazKarty(_blackjack.HracKarty[0], PlayerFirstHandPanel);
+			PlayerFirstSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.HracKarty[0])}";
+
+			// Druhá ruka (ak existuje)
+			if (_blackjack.HracKarty.Count > 1)
+			{
+				PlayerSecondHandPanel.Visibility = Visibility.Visible;
+				ZobrazKarty(_blackjack.HracKarty[1], PlayerSecondHandPanel);
+				PlayerSecondSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.HracKarty[1])}";
+			}
+			else
+			{
+				PlayerSecondHandPanel.Visibility = Visibility.Collapsed;
+				PlayerSecondSum.Text = string.Empty;
 			}
 
 		}
@@ -54,58 +74,80 @@ namespace WPFBlackJack
 				panel.Children.Add(obrazokKarty);
 			}
 
-			if (panel == PlayerCardsPanel)
+			if (panel == PlayerFirstHandPanel)
 			{
-				PlayerSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.HracKarty[0])}";
+				PlayerFirstSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.HracKarty[0])}";
 			}
 			else if (panel == DealerCardsPanel)
 			{
 				DealerSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.DealerKarty)}";
 			}
+
 		}
 
 
 
 		private void HitButton_Click(object sender, RoutedEventArgs e)
 		{
-			_blackjack.Hit(0);
-			ZobrazKarty(_blackjack.HracKarty[0], PlayerCardsPanel);
-			AktualizujSplitTlačidlo();
-
-			if (_blackjack.SumaKariet(_blackjack.HracKarty[0]) > 21)
+			if (_blackjack.AktualnaRuka < _blackjack.HracKarty.Count)
 			{
-				MessageBox.Show("Too many! Prehral si.", "Game Over", MessageBoxButton.OK, MessageBoxImage.Warning);
+				_blackjack.HracKarty[_blackjack.AktualnaRuka].Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
+				ZobrazKartyPreRuky();
 
-				UkoncitHru();
+				if (_blackjack.SumaKariet(_blackjack.HracKarty[_blackjack.AktualnaRuka]) > 21)
+				{
+					MessageBox.Show($"Hand {_blackjack.AktualnaRuka + 1} busted!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Warning);
+					StandButton_Click(sender, e); 
+				}
 			}
+
+		}
+
+		private void AktualizujSuma(int indexRuky, TextBlock sumaTextBlock)
+		{
+			var suma = _blackjack.SumaKariet(_blackjack.HracKarty[indexRuky]);
+			sumaTextBlock.Text = $"Sum: {suma}";
 		}
 
 		private void UkoncitHru()
 		{
 			_blackjack.Reset();
-			PlayerCardsPanel.Children.Clear();
+			PlayerFirstHandPanel.Children.Clear();
 			DealerCardsPanel.Children.Clear();
-			PlayerSum.Text = "Suma: 0";
+			PlayerSecondHandPanel.Children.Clear();
+			PlayerSecondSum.Text = "Suma: 0";
+			PlayerFirstSum.Text = "Suma: 0";
 			DealerSum.Text = "Suma: 0";
 
 		}
 
 		private void StandButton_Click(object sender, RoutedEventArgs e)
 		{
+			if (_blackjack.HracKarty.Count > 1)
+			{
+				_blackjack.AktualnaRuka++;
+
+				if (_blackjack.AktualnaRuka < _blackjack.HracKarty.Count)
+				{
+					ZobrazKartyPreRuky();
+					return;
+				}
+			}
+			while (_blackjack.SumaKariet(_blackjack.DealerKarty) < 17)
+			{
+				_blackjack.DealerKarty.Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
+				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
+			}
 			foreach (var ruka in _blackjack.HracKarty)
 			{
-				// Dealer ťahá karty, kým nemá minimálne 17
-				while (_blackjack.SumaKariet(_blackjack.DealerKarty) < 17)
-				{
-					_blackjack.DealerKarty.Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
-					ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
-				}
-
-				// Porovnanie výsledkov pre každú ruku
 				int playerSum = _blackjack.SumaKariet(ruka);
 				int dealerSum = _blackjack.SumaKariet(_blackjack.DealerKarty);
 
-				if (dealerSum > 21 || playerSum > dealerSum)
+				if (playerSum > 21)
+				{
+					MessageBox.Show("You busted! Dealer wins.", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
+				}
+				else if (dealerSum > 21 || playerSum > dealerSum)
 				{
 					MessageBox.Show("You win!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
 					_blackjack.HracBalance += _blackjack.AktualnaStavka * 2;
@@ -120,59 +162,73 @@ namespace WPFBlackJack
 					MessageBox.Show("Dealer wins!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
 				}
 			}
-
 			BalanceText.Text = $"Balance: {_blackjack.HracBalance}";
+			UkonciHru();
 
+		}
+
+		private void UkonciHru()
+		{
 			_blackjack.Reset();
-			PlayerCardsPanel.Children.Clear();
+
+			PlayerFirstHandPanel.Children.Clear();
 			DealerCardsPanel.Children.Clear();
 			PlayerSecondHandPanel.Children.Clear();
-			PlayerSum.Text = string.Empty;
+
+			PlayerFirstSum.Text = string.Empty;
 			DealerSum.Text = string.Empty;
+			PlayerSecondSum.Text = string.Empty;
+			PlayerSecondSum.Visibility = Visibility.Collapsed;
+
 		}
 
 		private void SplitButton_Click(object sender, RoutedEventArgs e)
 		{
+			Debug.WriteLine("Split button clicked.");
+
 			if (_blackjack.JeParPrvejRuky())
 			{
-				// Rozdelenie prvej ruky na dve ruky
-				var druhaRuka = new List<Karta> { _blackjack.HracKarty[0][1] };
-				_blackjack.HracKarty[0].RemoveAt(1);
-				_blackjack.HracKarty.Add(druhaRuka);
+				Debug.WriteLine("Pair found, performing split.");
 
-				// Rozdanie novej karty každej ruke
-				_blackjack.HracKarty[0].Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
-				_blackjack.HracKarty[1].Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
-
+				SplitHand();
 				UpdateHandLayoutForSplit();
-
-				// Zobrazenie oboch rúk
-				ZobrazKarty(_blackjack.HracKarty[0], PlayerCardsPanel);
+				//ZobrazKartyPreRuky();
+				ZobrazKarty(_blackjack.HracKarty[0], PlayerFirstHandPanel);
 				ZobrazKarty(_blackjack.HracKarty[1], PlayerSecondHandPanel);
 
-				// Skrytie tlačidla Split
-				SplitButton.Visibility = Visibility.Collapsed;
+				AktualizujSplitTlačidlo();
 			}
+		}
+
+		private void SplitHand()
+		{
+			Debug.WriteLine("Splitting hand...");
+
+			var druhaRuka = new List<Karta> { _blackjack.HracKarty[0][1] };
+			Debug.WriteLine($"Card to move: {_blackjack.HracKarty[0][1].Hodnota}");
+
+			_blackjack.HracKarty[0].RemoveAt(1);
+			_blackjack.HracKarty.Add(druhaRuka);
+
+			_blackjack.HracKarty[0].Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
+			_blackjack.HracKarty[1].Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
+			PlayerSecondSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.HracKarty[1])}";
+
 		}
 
 		private void UpdateHandLayoutForSplit()
 		{
-			PlayerCardsPanel.HorizontalAlignment = HorizontalAlignment.Left;
+			PlayerFirstHandPanel.HorizontalAlignment = HorizontalAlignment.Left;
 			PlayerSecondHandPanel.Visibility = Visibility.Visible;
+			SecondHandCall.Visibility = Visibility.Visible;
 			PlayerSecondHandPanel.HorizontalAlignment = HorizontalAlignment.Right;
-			PlayerSum2.Visibility = Visibility.Visible;
+			PlayerSecondSum.Visibility = Visibility.Visible;
 		}
 
 		private void AktualizujSplitTlačidlo()
 		{
-			if (_blackjack.JeParPrvejRuky())
-			{
-				SplitButton.Visibility = Visibility.Visible;
-			}
-			else
-			{
-				SplitButton.Visibility = Visibility.Collapsed;
-			}
+			SplitButton.Visibility = _blackjack.JeParPrvejRuky() ? Visibility.Visible : Visibility.Collapsed;
+
 		}
 
 	}

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 namespace WPFBlackJack
 {
@@ -23,6 +24,7 @@ namespace WPFBlackJack
 		public List<List<Karta>> HracKarty { get; set; }
 		public List<Karta> DealerKarty { get; set; }
 		public List<Karta> PotKarty { get; set; }
+		public int AktualnaRuka { get; set; }
 
 		private readonly Random _random = new();
 
@@ -81,7 +83,7 @@ namespace WPFBlackJack
 			return suma;
 		}
 
-		public void Hit(int rukaIndex = 0)
+		public void Hit(int rukaIndex)
 		{
 			HracKarty[rukaIndex].Add(VytiahniKartu(PotKarty));
 		}
@@ -90,7 +92,7 @@ namespace WPFBlackJack
 		{
 			AktualnaStavka = Stavka;
 			HracBalance -= AktualnaStavka;
-
+			;
 			var karty = PotKarty;
 			var prvaRuka = new List<Karta> { VytiahniKartu(karty), VytiahniKartu(karty) };
 			HracKarty.Add(prvaRuka);  // Prvá ruka hráča
@@ -98,6 +100,30 @@ namespace WPFBlackJack
 			DealerKarty.Add(VytiahniKartu(karty));
 			DealerKarty.Add(VytiahniKartu(karty));
 		}
+		public void Rozdanie2(int Stavka)
+		{
+			AktualnaStavka = Stavka;
+			HracBalance -= AktualnaStavka;
+
+			var karty = PotKarty;
+
+			// Zabezpečíme, že hráč dostane pár
+			Karta prvaKarta = VytiahniKartu(karty);
+			Karta druhaKarta = VytiahniKartu(karty);
+
+			while (prvaKarta.Hodnota != druhaKarta.Hodnota)
+			{
+				druhaKarta = VytiahniKartu(karty);
+			}
+
+			var prvaRuka = new List<Karta> { prvaKarta, druhaKarta };
+
+			HracKarty.Add(prvaRuka);  // Prvá ruka hráča
+
+			DealerKarty.Add(VytiahniKartu(karty));
+			DealerKarty.Add(VytiahniKartu(karty));
+		}
+
 
 		public bool JePar(List<Karta> karty)
 		{
@@ -105,9 +131,16 @@ namespace WPFBlackJack
 		}
 		public bool JeParPrvejRuky()
 		{
-			if (HracKarty.Count > 0 && HracKarty[0].Count == 2)
+			if (HracKarty.Count > 0)
 			{
-				return HracKarty[0][0].Hodnota == HracKarty[0][1].Hodnota;
+				var firstHand = HracKarty[0];
+				if (firstHand.Count == 2)
+				{
+					// Check if the first two cards are of the same value
+					var isPair = firstHand[0].Hodnota == firstHand[1].Hodnota;
+					Debug.WriteLine($"Checking pair: {firstHand[0].Hodnota} vs {firstHand[1].Hodnota}, Result: {isPair}");
+					return isPair;
+				}
 			}
 			return false;
 		}

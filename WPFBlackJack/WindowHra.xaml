@@ -24,38 +24,45 @@
         <TextBlock x:Name="DealerSum" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" FontSize="16"/>
 
         <!-- Karty hráča -->
-        <TextBlock Grid.Row="2" Grid.Column="1" Text="Your Cards:" FontSize="18" HorizontalAlignment="Center" Margin="10"/>
-        <WrapPanel x:Name="PlayerCardsPanel" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left" Margin="10"/>
-        <TextBlock x:Name="PlayerSum" Grid.Row="4" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" FontSize="16"/>
-        <WrapPanel x:Name="PlayerSecondHandPanel" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center" Margin="10" Visibility="Collapsed"/>
-        <TextBlock x:Name="PlayerSum2" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" FontSize="16" Visibility="Collapsed"/>
-
-        <!-- Tlačidlá pre Hrať a Stáť -->
-        <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
-            <Button Content="Hit" Width="100" Height="40" Margin="5" Click="HitButton_Click"/>
-            <Button Content="Stand" Width="100" Height="40" Margin="5" Click="StandButton_Click"/>
-            <Button x:Name="SplitButton" Content="Split" Width="120" Height="40" Margin="5" Click="SplitButton_Click" Visibility="Collapsed"/>
-
+        <StackPanel Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left" Margin="10">
+            <TextBlock Text="First Hand" FontSize="18" />
+            <WrapPanel x:Name="PlayerFirstHandPanel" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" Margin="10"/>
+            <TextBlock x:Name="PlayerFirstSum" FontSize="16" Margin="0,5,0,0"/>
         </StackPanel>
 
-        <!-- Balancia a stávky -->
-        <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
-            <TextBlock Text="Balance: " FontSize="18" VerticalAlignment="Center" Margin="10,0"/>
-            <TextBlock x:Name="BalanceText" Text="{Binding HracBalance}" FontSize="18" VerticalAlignment="Center" Margin="10,0"/>
-            <TextBlock Text="Bet: " FontSize="18" VerticalAlignment="Center" Margin="10,0"/>
-
-            <!-- ComboBox pre výber žetónov -->
-            <ComboBox x:Name="BetComboBox" Width="120" Margin="10,0" VerticalAlignment="Center">
-                <ComboBoxItem Content="10"/>
-                <ComboBoxItem Content="50"/>
-                <ComboBoxItem Content="100"/>
-                <ComboBoxItem Content="200"/>
-                <ComboBoxItem Content="500"/>
-            </ComboBox>
-
-            <Button Content="Start Game" Width="120" Height="40" Margin="10,0" Click="StartGameButton_Click"/>
+        <!-- Druhá ruka hráča -->
+        <StackPanel Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Margin="10">
+            <TextBlock Name="SecondHandCall" Text="Second Hand" FontSize="18" />
+            <WrapPanel x:Name="PlayerSecondHandPanel" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center" Margin="10" Visibility="Collapsed"/>
+            <TextBlock x:Name="PlayerSecondSum" FontSize="16" Margin="0,5,0,0"/>
         </StackPanel>
 
+        <!-- Spodný riadok s tlačidlami a informáciami -->
+        <Grid Grid.Row="6" Grid.ColumnSpan="2" Background="DarkSlateGray" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" >
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" >
+                <!-- Tlačidlá pre Hrať a Stáť -->
+                <Button Content="Hit" Width="100" Height="40" Margin="5" Click="HitButton_Click"/>
+                <Button Content="Stand" Width="100" Height="40" Margin="5" Click="StandButton_Click"/>
+                <Button x:Name="SplitButton" Content="Split" Width="120" Height="40" Margin="5" Click="SplitButton_Click" Visibility="Collapsed"/>
+
+                <!-- Informácie o Balance a Bet -->
+                <TextBlock Text="Balance: " FontSize="18" VerticalAlignment="Center" Margin="10,0"/>
+                <TextBlock x:Name="BalanceText" Text="{Binding HracBalance}" FontSize="18" VerticalAlignment="Center" Margin="10,0"/>
+                <TextBlock Text="Bet: " FontSize="18" VerticalAlignment="Center" Margin="10,0"/>
+
+                <!-- ComboBox pre výber žetónov -->
+                <ComboBox x:Name="BetComboBox" Width="120" Margin="10,0" VerticalAlignment="Center">
+                    <ComboBoxItem Content="10"/>
+                    <ComboBoxItem Content="50"/>
+                    <ComboBoxItem Content="100"/>
+                    <ComboBoxItem Content="200"/>
+                    <ComboBoxItem Content="500"/>
+                </ComboBox>
+
+                <!-- Tlačidlo Start Game -->
+                <Button Content="Start Game" Width="120" Height="40" Margin="10,0" Click="StartGameButton_Click"/>
+            </StackPanel>
+        </Grid>
 
     </Grid>
 </Window>
