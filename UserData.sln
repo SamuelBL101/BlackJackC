@@ -5,6 +5,8 @@ VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WPFBlackJack", "WPFBlackJack\WPFBlackJack.csproj", "{076B29FC-C913-49A3-AA59-8588774DC3C0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlackJackWebAPI", "BlackJackWebAPI\BlackJackWebAPI.csproj", "{AC39D6A8-9E2D-4C29-907A-6E3FA6E4CE41}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{076B29FC-C913-49A3-AA59-8588774DC3C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{076B29FC-C913-49A3-AA59-8588774DC3C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{076B29FC-C913-49A3-AA59-8588774DC3C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC39D6A8-9E2D-4C29-907A-6E3FA6E4CE41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC39D6A8-9E2D-4C29-907A-6E3FA6E4CE41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC39D6A8-9E2D-4C29-907A-6E3FA6E4CE41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC39D6A8-9E2D-4C29-907A-6E3FA6E4CE41}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

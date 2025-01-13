@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using WPFBlackJack;
+using WPFBlackJack.Service;
 namespace WPFBlackJack
 {
 	/// <summary>
@@ -11,13 +12,16 @@ namespace WPFBlackJack
 	/// </summary>
 	public partial class MainWindow : Window
 	{
+		private readonly GameHistoryApiClient _gameHistoryApiClient;
 
 		public MainWindow()
 		{
 			SQLitePCL.Batteries.Init();
 			InitializeComponent();
 			InitializeDatabase();
-			
+			var httpClient = new HttpClient();
+			_gameHistoryApiClient = new GameHistoryApiClient(httpClient);
+
 		}
 
 		private void InitializeDatabase()
@@ -69,45 +73,21 @@ namespace WPFBlackJack
 				}
 			}
 		}
-		/**
-		private async Task LoadGameHistory(int userId)
+		private async void LoadGameHistoryButton_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
-
-				var response = await _httpClient.GetAsync($"gamehistory/{userId}");
-				if (response.IsSuccessStatusCode)
+				var gameHistory = await _gameHistoryApiClient.GetGameHistoryAsync(1);
+				foreach (var game in gameHistory)
 				{
-					var responseBody = await response.Content.ReadAsStringAsync();
-					var gameHistory = JsonSerializer.Deserialize<List<GameHistory>>(responseBody);
-					//var gameHistory = await _gameHistoryApiClient.GetGameHistoryAsync(userId);
-					foreach (var game in gameHistory)
-					{
-						Console.WriteLine(game.Id);  // Example, adjust as needed
-					}
-					if (gameHistory.Any())
-					{
-						// Otvoríme okno na zobrazenie histórie hier
-						var historyWindow = new GameHistoryWindow(gameHistory);
-						historyWindow.Show();
-						this.Close();
-					}
-					else
-					{
-						MessageBox.Show("Žiadna história hier nebola nájdená.");
-					}
-				}
-				else
-				{
-					MessageBox.Show("Nepodarilo sa načítať históriu hier.");
+					Console.WriteLine($"Game: {game.Id}, Score: {game.Result}");
 				}
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show($"Chyba pri načítavaní histórie: {ex.Message}");
+				MessageBox.Show($"Error loading game history: {ex.Message}");
 			}
 		}
-		**/
 
 		private void SetPlaceholder(object sender, RoutedEventArgs e)
 		{

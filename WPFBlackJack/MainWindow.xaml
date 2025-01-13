@@ -14,7 +14,7 @@
             <Label Content="Heslo" Margin="0,0,0,0" VerticalContentAlignment="Center"/>
             <PasswordBox Name="PasswordBox" Width="250" Margin="0,5" VerticalContentAlignment="Center" GotFocus="ClearPasswordPlaceholder" LostFocus="SetPasswordPlaceholder"/>
             <Button Content="Prihlásiť sa" Width="250" Margin="0,20,0,0" Click="LoginButton_Click"/>
-            <CheckBox x:Name="ShowGameHistoryCheckBox" Content="Show Game History" HorizontalAlignment="Left" VerticalAlignment="Top" />
+            <Button Content="Load Game History" Click="LoadGameHistoryButton_Click" />
 
             <TextBlock Name="ErrorMessage" Foreground="Red" Margin="0,5" Visibility="Collapsed" Text="Neplatné prihlasovacie údaje"/>
 
