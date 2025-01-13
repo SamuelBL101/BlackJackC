@@ -1,7 +1,9 @@
-﻿using System.Windows;
+﻿using System.Net.Http;
+using System.Text.Json;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-
+using WPFBlackJack;
 namespace WPFBlackJack
 {
 	/// <summary>
@@ -9,6 +11,7 @@ namespace WPFBlackJack
 	/// </summary>
 	public partial class MainWindow : Window
 	{
+
 		public MainWindow()
 		{
 			SQLitePCL.Batteries.Init();
@@ -36,7 +39,7 @@ namespace WPFBlackJack
 			}
 		}
 
-		private void LoginButton_Click(object sender, RoutedEventArgs e)
+		private async void LoginButton_Click(object sender, RoutedEventArgs e)
 		{
 			string username = UsernameTextBox.Text;
 			string password = PasswordBox.Password;
@@ -52,11 +55,11 @@ namespace WPFBlackJack
 			{
 				var user = context.Users
 					.FirstOrDefault(u => u.Username == username && u.Password == password);
-
 				if (user != null)
 				{
-
-					var nextWindow = new WindowHra();
+					
+					var daco = new Blackjack(user.Balance, user.Id);
+					var nextWindow = new WindowHra(daco, user.Id);
 					nextWindow.Show();
 					this.Close();
 				}
@@ -66,7 +69,45 @@ namespace WPFBlackJack
 				}
 			}
 		}
-	
+		/**
+		private async Task LoadGameHistory(int userId)
+		{
+			try
+			{
+
+				var response = await _httpClient.GetAsync($"gamehistory/{userId}");
+				if (response.IsSuccessStatusCode)
+				{
+					var responseBody = await response.Content.ReadAsStringAsync();
+					var gameHistory = JsonSerializer.Deserialize<List<GameHistory>>(responseBody);
+					//var gameHistory = await _gameHistoryApiClient.GetGameHistoryAsync(userId);
+					foreach (var game in gameHistory)
+					{
+						Console.WriteLine(game.Id);  // Example, adjust as needed
+					}
+					if (gameHistory.Any())
+					{
+						// Otvoríme okno na zobrazenie histórie hier
+						var historyWindow = new GameHistoryWindow(gameHistory);
+						historyWindow.Show();
+						this.Close();
+					}
+					else
+					{
+						MessageBox.Show("Žiadna história hier nebola nájdená.");
+					}
+				}
+				else
+				{
+					MessageBox.Show("Nepodarilo sa načítať históriu hier.");
+				}
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show($"Chyba pri načítavaní histórie: {ex.Message}");
+			}
+		}
+		**/
 
 		private void SetPlaceholder(object sender, RoutedEventArgs e)
 		{
@@ -118,6 +159,16 @@ namespace WPFBlackJack
 				var users = context.Users.ToList();  
 
 			}
+		}
+
+		private void ShowGameHistoryCheckBox_Checked(object sender, RoutedEventArgs e)
+		{
+			throw new NotImplementedException();
+		}
+
+		private void ShowGameHistoryCheckBox_Unchecked(object sender, RoutedEventArgs e)
+		{
+			throw new NotImplementedException();
 		}
 	}
 }

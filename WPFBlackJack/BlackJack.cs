@@ -6,13 +6,14 @@ namespace WPFBlackJack
 {
 	public class Blackjack : INotifyPropertyChanged
 	{
-		private int _hracBalance;
+		private decimal _hracBalance;
 		private int _aktualnaStavka;
+		private int _idHraca;
 
 		public event PropertyChangedEventHandler PropertyChanged;
 		public int HracBalance
 		{
-			get => _hracBalance;
+			get => (int)_hracBalance;
 			set => SetField(ref _hracBalance, value);
 		}
 		public int AktualnaStavka
@@ -20,6 +21,7 @@ namespace WPFBlackJack
 			get => _aktualnaStavka;
 			set => SetField(ref _aktualnaStavka, value);
 		}
+		public int IdHraca => _idHraca;
 
 		public List<List<Karta>> HracKarty { get; set; }
 		public List<Karta> DealerKarty { get; set; }
@@ -28,12 +30,13 @@ namespace WPFBlackJack
 
 		private readonly Random _random = new();
 
-		public Blackjack()
+		public Blackjack(decimal Balance, int idhraca)
 		{
+			_idHraca = idhraca;
 			HracKarty = new List<List<Karta>>();
 			DealerKarty = new List<Karta>();
 			PotKarty = new List<Karta>();
-			HracBalance = 1000; 
+			HracBalance = (int)Balance; 
 			PotKarty = VytvorKarty();
 			AktualnaStavka = 0;
 		}

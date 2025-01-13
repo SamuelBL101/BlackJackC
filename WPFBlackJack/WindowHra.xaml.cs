@@ -3,6 +3,9 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using System.Numerics;
+using MySqlX.XDevAPI.Common;
 
 namespace WPFBlackJack
 {
@@ -12,13 +15,48 @@ namespace WPFBlackJack
 	public partial class WindowHra : Window
 	{
 		private Blackjack _blackjack;
+		private Blackjack daco;
+		private ApplicationDbContext _dbContext;
+		private int idHraca = 1;
 
-		public WindowHra()
+		public WindowHra(Blackjack blackjack, int id)
 		{
 			InitializeComponent();
-			_blackjack = new Blackjack();
+			_blackjack = blackjack;
 			DataContext = _blackjack;
-			
+			//_dbContext = context;
+			_dbContext = new ApplicationDbContext();
+			idHraca = _blackjack.IdHraca;
+			InitializeBalanceAsync();
+
+
+		}
+
+		private async void InitializeBalanceAsync()
+		{
+			_blackjack.HracBalance = await LoadBalanceFromDbAsync(idHraca);
+			BalanceText.Text = $"Balance: {_blackjack.HracBalance}";
+		}
+
+
+		private async Task<int> LoadBalanceFromDbAsync(int idHraca)
+		{
+			var user = await _dbContext.Users.FirstOrDefaultAsync(p => p.Id == idHraca);
+			if (user != null)
+			{
+				return (int)user.Balance;
+			}
+			return 0;
+		}
+
+		private async Task UpdateBalanceInDbAsync(int newBalance, int idHraca)
+		{
+			var user = await _dbContext.Users.FirstOrDefaultAsync(p => p.Id == idHraca);
+			if (user != null)
+			{
+				user.Balance = newBalance;
+				await _dbContext.SaveChangesAsync();
+			}
 		}
 
 		private void StartGameButton_Click(object sender, RoutedEventArgs e)
@@ -32,7 +70,7 @@ namespace WPFBlackJack
 				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
 
 				AktualizujSplitTlačidlo();
-				ZvysAktivnuRuku(); // Zvýraznenie prvej ruky po rozdelení
+				ZvysAktivnuRuku(); 
 
 			}
 			else
@@ -146,7 +184,7 @@ namespace WPFBlackJack
 			BalanceText.Text = $"Balance: {_blackjack.HracBalance}";
 
 			// Ukonči hru a resetuj stav
-			UkonciHru();
+			UkonciHruAsync();
 
 		}
 
@@ -176,11 +214,20 @@ namespace WPFBlackJack
 				{
 					MessageBox.Show("Dealer wins!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
 				}
+				_ = UpdateBalanceInDbAsync(_blackjack.HracBalance, idHraca);
+				InitializeBalanceAsync();
 			}
 		}
 
-		private void UkonciHru()
+		private async Task UkonciHruAsync()
 		{
+			string playerCards = string.Join(", ", _blackjack.HracKarty.Select(card => card.ToString()));  // Format the player's cards
+			string dealerCards = string.Join(", ", _blackjack.DealerKarty.Select(card => card.ToString()));  // Format the dealer's cards
+			decimal bet = _blackjack.AktualnaStavka;  // The current bet made by the player
+			string result = _blackjack.HracBalance > 0 ? "win" : _blackjack.HracBalance < 0 ? "lose" : "draw";  // Determine the result
+
+			await SaveGameHistoryAsync(playerCards, dealerCards, bet, result);
+
 			_blackjack.Reset();
 
 			PlayerFirstHandPanel.Children.Clear();
@@ -193,6 +240,23 @@ namespace WPFBlackJack
 			PlayerSecondSum.Visibility = Visibility.Collapsed;
 			AktualizujSplitTlačidlo();
 
+		}
+
+		private async Task SaveGameHistoryAsync(string playerCards, string dealerCards, decimal bet, string result)
+		{
+			var gameHistory = new GameHistory
+			{
+				UserId = _blackjack.IdHraca,
+				PlayerCards = playerCards,  // You might want to format the list of cards as a string or JSON
+				DealerCards = dealerCards,  // Same as above
+				Bet = bet,
+				Result = result,
+				PlayedAt = DateTime.Now
+			};
+
+			// Save to the database
+			_dbContext.GameHistories.Add(gameHistory);
+			await _dbContext.SaveChangesAsync();
 		}
 
 		private void SplitButton_Click(object sender, RoutedEventArgs e)
