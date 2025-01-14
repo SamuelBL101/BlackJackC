@@ -1,6 +1,7 @@
-﻿using BlackJackWebAPI.Models;
+﻿using LibShared;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using GameHistory = BlackJackWebAPI.Models.GameHistory;
 
 namespace WebAPI.Controllers
 {
@@ -21,7 +22,7 @@ namespace WebAPI.Controllers
 		{
 			var gameHistory = await _context.GameHistories
 				.Where(g => g.UserId == userId)
-				.Include(g => g.User)  
+				.Include(g => g.User)
 				.ToListAsync();
 
 			if (gameHistory == null || gameHistory.Count == 0)
@@ -30,6 +31,20 @@ namespace WebAPI.Controllers
 			}
 
 			return Ok(gameHistory);
+		}
+
+		// GET api/GameHistory/all
+		[HttpGet("all")]
+		public async Task<ActionResult<List<User>>> GetAllUsers()
+		{
+			var users = await _context.Users.ToListAsync();
+
+			if (users == null || users.Count == 0)
+			{
+				return NotFound("No users found in the system.");
+			}
+
+			return Ok(users);
 		}
 	}
 }

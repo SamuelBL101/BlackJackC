@@ -21,6 +21,7 @@ namespace WPFBlackJack
 			InitializeDatabase();
 			var httpClient = new HttpClient();
 			_gameHistoryApiClient = new GameHistoryApiClient(httpClient);
+			//AddUserButton_Click(null, null);
 
 		}
 
@@ -47,8 +48,8 @@ namespace WPFBlackJack
 		{
 			string username = UsernameTextBox.Text;
 			string password = PasswordBox.Password;
-			username = "testuser";
-			password = "password123";
+			username = "b";
+			password = "b";
 			if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
 			{
 				MessageBox.Show("Please enter both username and password.");
@@ -122,9 +123,9 @@ namespace WPFBlackJack
 			{
 				var newUser = new User
 				{
-					Username = "a",
-					Password = "a",
-					Balance = 1000.00m
+					Username = "b",
+					Password = "b",
+					Balance = 10400.00m
 				};
 
 				context.Users.Add(newUser);
