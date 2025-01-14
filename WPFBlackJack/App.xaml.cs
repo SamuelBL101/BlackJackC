@@ -1,29 +1,31 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using System.Configuration;
-using System.Data;
 using System.Windows;
+using System.Net.Http;
+using WPFBlackJack.Service;
 
 namespace WPFBlackJack
 {
-	/// <summary>
-	/// Interaction logic for App.xaml
-	/// </summary>
 	public partial class App : Application
 	{
-		private static ServiceProvider _serviceProvider;
+		public static ServiceProvider ServiceProvider { get; private set; }
 
-		public static ServiceProvider ServiceProvider => _serviceProvider;
+		public App()
+		{
+			var serviceCollection = new ServiceCollection();
+
+			serviceCollection.AddSingleton<HttpClient>();
+
+			serviceCollection.AddSingleton<MainWindow>();  
+			serviceCollection.AddSingleton<WindowHra>();   
+			serviceCollection.AddSingleton<GameHistoryApiClient>(); 
+
+			ServiceProvider = serviceCollection.BuildServiceProvider();
+		}
 
 		protected override void OnStartup(StartupEventArgs e)
 		{
-			var serviceCollection = new ServiceCollection();
-			serviceCollection.AddHttpClient();
-			_serviceProvider = serviceCollection.BuildServiceProvider();
-
-			var mainWindow = new MainWindow();
-			mainWindow.Show();
+			base.OnStartup(e);
+			var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
 		}
-
 	}
-
 }

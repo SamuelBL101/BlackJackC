@@ -3,38 +3,39 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using LibShared;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Options;
+using MySqlConnector;
 using WPFBlackJack;
 using WPFBlackJack.Service;
 namespace WPFBlackJack
 {
 	/// <summary>
-	/// Interaction logic for MainWindow.xaml
+	/// Hlavné okno aplikácie pre hru Blackjack.
 	/// </summary>
 	public partial class MainWindow : Window
 	{
 		private readonly GameHistoryApiClient _gameHistoryApiClient;
 
+		/// <summary>
+		/// Konštruktor, ktorý inicializuje komponenty a inicializuje klienta pre API histórie hier.
+		/// </summary>
 		public MainWindow()
 		{
 			SQLitePCL.Batteries.Init();
 			InitializeComponent();
-			InitializeDatabase();
+			
+
 			var httpClient = new HttpClient();
 			_gameHistoryApiClient = new GameHistoryApiClient(httpClient);
-			//AddUserButton_Click(null, null);
 
 		}
 
-		private void InitializeDatabase()
-		{
-			using (var context = new ApplicationDbContext())
-			{
-				context.Database.EnsureCreated();
-			}
-		}
-	
-
-
+		/// <summary>
+		/// Vymaže text v textovom poli, keď je text rovný placeholderu "Používateľské meno".
+		/// </summary>
 		private void ClearPlaceholder(object sender, RoutedEventArgs e)
 		{
 			if (sender is TextBox textBox && textBox.Text == "Používateľské meno")
@@ -44,51 +45,61 @@ namespace WPFBlackJack
 			}
 		}
 
+		/// <summary>
+		/// Odeslanie prihlasovacích údajov a autentifikácia používateľa.
+		/// </summary>
 		private async void LoginButton_Click(object sender, RoutedEventArgs e)
 		{
 			string username = UsernameTextBox.Text;
 			string password = PasswordBox.Password;
-			username = "b";
-			password = "b";
+
 			if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
 			{
 				MessageBox.Show("Please enter both username and password.");
 				return;
 			}
 
-			using (var context = new ApplicationDbContext())
+			var user = await _gameHistoryApiClient.AuthenticateUserAsync(username, password);
+
+			if (user != null)
 			{
-				var user = context.Users
-					.FirstOrDefault(u => u.Username == username && u.Password == password);
-				if (user != null)
+				if (LoadGameHistoryCheckBox.IsChecked == true)
 				{
-					
-					var daco = new Blackjack(user.Balance, user.Id);
-					var nextWindow = new WindowHra(daco, user.Id);
-					nextWindow.Show();
-					this.Close();
+					LoadGameHistory(user.Id);
 				}
 				else
 				{
-					MessageBox.Show("Invalid username or password.");
+					var blackjack = new Blackjack(user.Balance, user.Id);
+					var windowHra = new WindowHra(blackjack, user.Id, _gameHistoryApiClient);  
+					windowHra.Show();
+					this.Close();  
 				}
+				
+			}
+			else
+			{
+				MessageBox.Show("Invalid username or password.");
 			}
 		}
-		private async void LoadGameHistoryButton_Click(object sender, RoutedEventArgs e)
+
+		/// <summary>
+		/// Načíta históriu hier používateľa.
+		/// </summary>
+		private async void LoadGameHistory(int id)
 		{
-			try
+			var gameHistory = await _gameHistoryApiClient.GetGameHistoryAsync(id);
+
+			if (gameHistory != null)
 			{
-				var gameHistory = await _gameHistoryApiClient.GetGameHistoryAsync(1);
-				foreach (var game in gameHistory)
-				{
-					Console.WriteLine($"Game: {game.Id}, Score: {game.Result}");
-				}
+				GameHistoryWindow historyWindow = new GameHistoryWindow(gameHistory);
+				historyWindow.Show();
 			}
-			catch (Exception ex)
+			else
 			{
-				MessageBox.Show($"Error loading game history: {ex.Message}");
+				MessageBox.Show("Neexistujú žiadne záznamy o histórii hier.", "Chyba", MessageBoxButton.OK, MessageBoxImage.Warning);
 			}
 		}
+
 
 		private void SetPlaceholder(object sender, RoutedEventArgs e)
 		{
@@ -115,41 +126,6 @@ namespace WPFBlackJack
 				passwordBox.Password = "Heslo";
 				passwordBox.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Gray);
 			}
-		}
-
-		private void AddUserButton_Click(object sender, RoutedEventArgs e)
-		{
-			using (var context = new ApplicationDbContext())
-			{
-				var newUser = new User
-				{
-					Username = "b",
-					Password = "b",
-					Balance = 10400.00m
-				};
-
-				context.Users.Add(newUser);
-				context.SaveChanges();  
-			}
-		}
-
-		private void LoadUsersButton_Click(object sender, RoutedEventArgs e)
-		{
-			using (var context = new ApplicationDbContext())
-			{
-				var users = context.Users.ToList();  
-
-			}
-		}
-
-		private void ShowGameHistoryCheckBox_Checked(object sender, RoutedEventArgs e)
-		{
-			throw new NotImplementedException();
-		}
-
-		private void ShowGameHistoryCheckBox_Unchecked(object sender, RoutedEventArgs e)
-		{
-			throw new NotImplementedException();
 		}
 	}
 }

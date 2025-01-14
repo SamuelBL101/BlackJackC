@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 
-namespace LibShared // You can adjust this namespace based on your project structure
+namespace LibShared 
 {
 	public class ApplicationDbContext : DbContext
 	{
@@ -35,6 +35,6 @@ namespace LibShared // You can adjust this namespace based on your project struc
 		public decimal Bet { get; set; }
 		public string Result { get; set; }
 		public DateTime PlayedAt { get; set; }
-		public User User { get; set; }
+
 	}
 }

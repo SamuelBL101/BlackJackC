@@ -1,64 +1,93 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Diagnostics;
-using Microsoft.EntityFrameworkCore;
-using System.Numerics;
-using MySqlX.XDevAPI.Common;
+using LibShared;
+using WPFBlackJack.Service;
+using System.Net.Http;
 
 namespace WPFBlackJack
 {
 	/// <summary>
 	/// Interaction logic for WindowHra.xaml
+	/// Táto trieda predstavuje hlavnú hernú obrazovku aplikácie Blackjack.
+	/// Obsahuje logiku na spracovanie herných akcií, prácu s databázou používateľov, a aktualizáciu herného rozhrania.
 	/// </summary>
 	public partial class WindowHra : Window
 	{
 		private Blackjack _blackjack;
-		private Blackjack daco;
-		private ApplicationDbContext _dbContext;
+		private readonly GameHistoryApiClient _gameHistoryApiClient;
+
 		private int idHraca = 1;
 
-		public WindowHra(Blackjack blackjack, int id)
+		/// <summary>
+		/// Konštruktor okna, inicializuje hernú logiku, databázového klienta a herné rozhranie.
+		/// </summary>
+		/// <param name="blackjack">Inštancia hernej logiky</param>
+		/// <param name="idHraca">ID aktuálneho hráča</param>
+		/// <param name="gameHistoryApiClient">Klient na prístup k hernej histórii</param>
+		public WindowHra(Blackjack blackjack, int idHraca, GameHistoryApiClient gameHistoryApiClient )
 		{
 			InitializeComponent();
 			_blackjack = blackjack;
 			DataContext = _blackjack;
-			//_dbContext = context;
-			_dbContext = new ApplicationDbContext();
+			_gameHistoryApiClient = gameHistoryApiClient;
+			ChooseBetTextBlock.Visibility = Visibility.Visible;
 			idHraca = _blackjack.IdHraca;
 			InitializeBalanceAsync();
 
 
 		}
 
+		/// <summary>
+		/// Načíta počiatočný zostatok hráča z databázy a nastaví ho v hernej logike.
+		/// </summary>
 		private async void InitializeBalanceAsync()
 		{
-			_blackjack.HracBalance = await LoadBalanceFromDbAsync(idHraca);
-			BalanceText.Text = $"Balance: {_blackjack.HracBalance}";
+			var user = await _gameHistoryApiClient.GetUserByIdAsync(idHraca);
+			_blackjack.HracBalance = (int)user.Balance;
+
 		}
 
-
-		private async Task<int> LoadBalanceFromDbAsync(int idHraca)
+		/// <summary>
+		/// Aktualizuje zostatok hráča v databáze.
+		/// </summary>
+		/// <param name="idHraca">ID hráča</param>
+		/// <param name="newBalance">Nový zostatok</param>
+		/// <returns>Indikácia, či aktualizácia prebehla úspešne</returns>
+		public async Task<bool> UpdateUserBalanceAsync(int idHraca, int newBalance)
 		{
-			var user = await _dbContext.Users.FirstOrDefaultAsync(p => p.Id == idHraca);
-			if (user != null)
+			try
 			{
-				return (int)user.Balance;
+				var updateRequest = new
+				{
+					UserId = idHraca,
+					Balance = newBalance
+				};
+
+				var response = await _gameHistoryApiClient.UpdateUserBalanceAsync(idHraca,newBalance);
+
+				if (response is HttpResponseMessage httpResponse && httpResponse.IsSuccessStatusCode)
+				{
+					return true;
+				}
+				else
+				{
+					MessageBox.Show("Failed to update balance.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+					return false;
+				}
 			}
-			return 0;
+			catch (Exception ex)
+			{
+				MessageBox.Show($"An error occurred while updating the balance: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				return false;
+			}
 		}
 
-		private async Task UpdateBalanceInDbAsync(int newBalance, int idHraca)
-		{
-			var user = await _dbContext.Users.FirstOrDefaultAsync(p => p.Id == idHraca);
-			if (user != null)
-			{
-				user.Balance = newBalance;
-				await _dbContext.SaveChangesAsync();
-			}
-		}
-
+		/// <summary>
+		/// Spracováva kliknutie na tlačidlo "Start Game".
+		/// Inicializuje hru a nastaví stávku.
+		/// </summary>
 		private void StartGameButton_Click(object sender, RoutedEventArgs e)
 		{
 			SecondHandCall.Visibility = Visibility.Collapsed;
@@ -66,9 +95,10 @@ namespace WPFBlackJack
 			{
 				_blackjack.Rozdanie2(betAmount);
 				_blackjack.AktualnaRuka = 0;
+				ZobrazKartyPreRuky();
 				ZobrazKarty(_blackjack.HracKarty[0], PlayerFirstHandPanel);
 				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel);
-
+				ChooseBetTextBlock.Visibility = Visibility.Collapsed;
 				AktualizujSplitTlačidlo();
 				ZvysAktivnuRuku(); 
 
@@ -79,11 +109,16 @@ namespace WPFBlackJack
 			}
 
 		}
+
+		/// <summary>
+		/// Zobrazí karty pre všetky ruky hráča.
+		/// </summary>
 		private void ZobrazKartyPreRuky()
 		{
 			ZobrazKarty(_blackjack.HracKarty[0], PlayerFirstHandPanel);
 			PlayerFirstSum.Text = $"Suma: {_blackjack.SumaKariet(_blackjack.HracKarty[0])}";
-
+			DealerText.Visibility = Visibility.Visible;
+			PlayerText.Visibility = Visibility.Visible;
 			if (_blackjack.HracKarty.Count > 1)
 			{
 				PlayerSecondHandPanel.Visibility = Visibility.Visible;
@@ -97,6 +132,12 @@ namespace WPFBlackJack
 			}
 
 		}
+
+		/// <summary>
+		/// Zobrazí karty v určenom panely WrapPanel.
+		/// </summary>
+		/// <param name="karty">Zoznam kariet na zobrazenie</param>
+		/// <param name="panel">Cieľový panel</param>
 		private void ZobrazKarty(List<Karta> karty, WrapPanel panel)
 		{
 			panel.Children.Clear();
@@ -104,7 +145,7 @@ namespace WPFBlackJack
 			{
 				Image obrazokKarty = new Image
 				{
-					Source = new BitmapImage(new Uri(karta.Obrazok, UriKind.Absolute)),
+					Source = new BitmapImage(new Uri(karta.Skryta ? "C:\\Users\\billy\\source\\repos\\UserData\\WPFBlackJack\\Images\\back.png" : karta.Obrazok, UriKind.Absolute)),
 					Width = 100, 
 					Height = 150, 
 					Margin = new Thickness(5)
@@ -124,12 +165,13 @@ namespace WPFBlackJack
 
 		}
 
-
-
+		/// <summary>
+		/// Spracováva kliknutie na tlačidlo "Hit".
+		/// Pridá kartu do aktuálnej ruky a kontroluje, či ruka neprekročila hodnotu 21.
+		/// </summary>
 		private void HitButton_Click(object sender, RoutedEventArgs e)
 		{
-			
-				_blackjack.HracKarty[_blackjack.AktualnaRuka].Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
+				_blackjack.Hit(_blackjack.AktualnaRuka);
 				ZobrazKartyPreRuky();
 
 				if (_blackjack.SumaKariet(_blackjack.HracKarty[_blackjack.AktualnaRuka]) > 21)
@@ -141,53 +183,44 @@ namespace WPFBlackJack
 
 		}
 
-		private void AktualizujSuma(int indexRuky, TextBlock sumaTextBlock)
-		{
-			var suma = _blackjack.SumaKariet(_blackjack.HracKarty[indexRuky]);
-			sumaTextBlock.Text = $"Sum: {suma}";
-		}
-
-		private void UkoncitHru()
-		{
-			_blackjack.Reset();
-			PlayerFirstHandPanel.Children.Clear();
-			DealerCardsPanel.Children.Clear();
-			PlayerSecondHandPanel.Children.Clear();
-			PlayerSecondSum.Text = "Suma: 0";
-			PlayerFirstSum.Text = "Suma: 0";
-			DealerSum.Text = "Suma: 0";
-
-		}
-
+		/// <summary>
+		/// Metóda obsluhuje kliknutie na tlačidlo "Stand".
+		/// Ak má hráč viac ako jednu ruku, prejde na ďalšiu ruku. 
+		/// Inak vykoná ťahanie kariet pre dealera a vyhodnotí výsledok hry.
+		/// </summary>
 		private void StandButton_Click(object sender, RoutedEventArgs e)
 		{
+			// Kontrola, či má hráč viacero rúk a či ešte nehral všetky
 			if (_blackjack.HracKarty.Count > 1 && _blackjack.AktualnaRuka < _blackjack.HracKarty.Count - 1)
 			{
 				_blackjack.AktualnaRuka++;
-				ZobrazKartyPreRuky(); // Obnov UI pre aktuálnu ruku
-				ZvysAktivnuRuku(); // Zvýraznenie novej aktívnej ruky
+				ZobrazKartyPreRuky(); 
+				ZvysAktivnuRuku(); 
 
-				return; // Ešte neskončili všetky ruky
+				return; 
 			}
 
-			// Ak hráč ukončil všetky ruky, nech dealer ťahá
+			// Dealer ťahá karty, kým súčet jeho kariet je menší ako 17
 			while (_blackjack.SumaKariet(_blackjack.DealerKarty) < 17)
 			{
 				_blackjack.DealerKarty.Add(_blackjack.VytiahniKartu(_blackjack.PotKarty));
-				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel); // Obnov UI pre dealera
+				_blackjack.DealerKarty[1].Skryta = false;
+				ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel); 
 			}
+			_blackjack.DealerKarty[1].Skryta = false;
+			ZobrazKarty(_blackjack.DealerKarty, DealerCardsPanel); 
 
-			// Vyhodnoť výsledky
 			VyhodnotHru();
 
-			// Aktualizuj zostatok hráča
-			BalanceText.Text = $"Balance: {_blackjack.HracBalance}";
+			BalanceText.Text = $" {_blackjack.HracBalance}";
 
-			// Ukonči hru a resetuj stav
 			UkonciHruAsync();
 
 		}
 
+		/// <summary>
+		/// Vyhodnotí výsledok hry na základe súčtov kariet hráča a dealera.
+		/// </summary>
 		private void VyhodnotHru()
 		{
 			int dealerSum = _blackjack.SumaKariet(_blackjack.DealerKarty);
@@ -214,17 +247,21 @@ namespace WPFBlackJack
 				{
 					MessageBox.Show("Dealer wins!", "Game Result", MessageBoxButton.OK, MessageBoxImage.Information);
 				}
-				_ = UpdateBalanceInDbAsync(_blackjack.HracBalance, idHraca);
+				_ = UpdateUserBalanceAsync(idHraca, _blackjack.HracBalance);
 				InitializeBalanceAsync();
 			}
 		}
 
+		/// <summary>
+		/// Asynchrónne ukončí hru, resetuje stav a uloží históriu hry.
+		/// </summary>
 		private async Task UkonciHruAsync()
 		{
-			string playerCards = string.Join(", ", _blackjack.HracKarty.Select(card => card.ToString()));  // Format the player's cards
-			string dealerCards = string.Join(", ", _blackjack.DealerKarty.Select(card => card.ToString()));  // Format the dealer's cards
-			decimal bet = _blackjack.AktualnaStavka;  // The current bet made by the player
-			string result = _blackjack.HracBalance > 0 ? "win" : _blackjack.HracBalance < 0 ? "lose" : "draw";  // Determine the result
+			string playerCards = string.Join(", ", _blackjack.HracKarty
+				.SelectMany(hand => hand.Select(card => card.Hodnota)));  
+			string dealerCards = string.Join(", ", _blackjack.DealerKarty.Select(card => card.Hodnota));  
+			decimal bet = _blackjack.AktualnaStavka;  
+			string result = _blackjack.HracBalance > 0 ? "win" : _blackjack.HracBalance < 0 ? "lose" : "draw";  
 
 			await SaveGameHistoryAsync(playerCards, dealerCards, bet, result);
 
@@ -238,46 +275,62 @@ namespace WPFBlackJack
 			DealerSum.Text = string.Empty;
 			PlayerSecondSum.Text = string.Empty;
 			PlayerSecondSum.Visibility = Visibility.Collapsed;
+			DealerText.Visibility = Visibility.Collapsed;
+			PlayerText.Visibility = Visibility.Collapsed;
+			ChooseBetTextBlock.Visibility = Visibility.Visible;
 			AktualizujSplitTlačidlo();
 
 		}
 
+		/// <summary>
+		/// Uloží históriu hry na server.
+		/// </summary>
 		private async Task SaveGameHistoryAsync(string playerCards, string dealerCards, decimal bet, string result)
 		{
 			var gameHistory = new GameHistory
 			{
 				UserId = _blackjack.IdHraca,
-				PlayerCards = playerCards,  // You might want to format the list of cards as a string or JSON
-				DealerCards = dealerCards,  // Same as above
+				PlayerCards = playerCards,  
+				DealerCards = dealerCards,  
 				Bet = bet,
 				Result = result,
 				PlayedAt = DateTime.Now
 			};
 
-			// Save to the database
-			_dbContext.GameHistories.Add(gameHistory);
-			await _dbContext.SaveChangesAsync();
+			
+			var response = await _gameHistoryApiClient.SaveGameHistoryAsync(gameHistory);
+
+			if (response.IsSuccessStatusCode)
+			{
+				Console.WriteLine("Game history saved successfully.");
+			}
+			else
+			{
+				Console.WriteLine("Failed to save game history.");
+			}
 		}
 
+		/// <summary>
+		/// Obsluhuje kliknutie na tlačidlo "Split".
+		/// Rozdelí ruku hráča, ak obsahuje pár, a aktualizuje zobrazenie.
+		/// </summary>
 		private void SplitButton_Click(object sender, RoutedEventArgs e)
 		{
-			Debug.WriteLine("Split button clicked.");
-
 			if (_blackjack.JeParPrvejRuky())
 			{
-				Debug.WriteLine("Pair found, performing split.");
-
 				SplitHand();
 				UpdateHandLayoutForSplit();
 				//ZobrazKartyPreRuky();
 				ZobrazKarty(_blackjack.HracKarty[0], PlayerFirstHandPanel);
 				ZobrazKarty(_blackjack.HracKarty[1], PlayerSecondHandPanel);
-				ZvysAktivnuRuku(); // Zvýraznenie prvej ruky po rozdelení
-
+				ZvysAktivnuRuku(); 
 				AktualizujSplitTlačidlo();
 			}
 		}
 
+		/// <summary>
+		/// Rozdelí aktuálnu ruku hráča na dve samostatné ruky.
+		/// </summary>
 		private void SplitHand()
 		{
 			Debug.WriteLine("Splitting hand...");
@@ -294,6 +347,9 @@ namespace WPFBlackJack
 
 		}
 
+		/// <summary>
+		/// Aktualizuje rozloženie panelov po rozdelení ruky.
+		/// </summary>
 		private void UpdateHandLayoutForSplit()
 		{
 			PlayerFirstHandPanel.HorizontalAlignment = HorizontalAlignment.Left;
@@ -303,23 +359,29 @@ namespace WPFBlackJack
 			PlayerSecondSum.Visibility = Visibility.Visible;
 		}
 
+		/// <summary>
+		/// Aktualizuje tlačidlo Split podľa toho, či je možné rozdeliť ruku.
+		/// </summary>
 		private void AktualizujSplitTlačidlo()
 		{
 			SplitButton.Visibility = _blackjack.JeParPrvejRuky() ? Visibility.Visible : Visibility.Collapsed;
 
 		}
 
+		/// <summary>
+		/// Zvýrazní aktuálnu ruku hráča.
+		/// </summary>
 		private void ZvysAktivnuRuku()
 		{
 			if (_blackjack.AktualnaRuka == 0)
 			{
-				PlayerFirstHandPanel.Opacity = 1.0; // Aktívna ruka
-				PlayerSecondHandPanel.Opacity = 0.5; // Neaktívna ruka
+				PlayerFirstHandPanel.Opacity = 1.0; 
+				PlayerSecondHandPanel.Opacity = 0.5; 
 			}
 			else if (_blackjack.AktualnaRuka == 1)
 			{
-				PlayerFirstHandPanel.Opacity = 0.5; // Neaktívna ruka
-				PlayerSecondHandPanel.Opacity = 1.0; // Aktívna ruka
+				PlayerFirstHandPanel.Opacity = 0.5; 
+				PlayerSecondHandPanel.Opacity = 1.0; 
 			}
 		}
 

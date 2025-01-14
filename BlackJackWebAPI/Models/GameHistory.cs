@@ -1,6 +1,6 @@
 ﻿namespace BlackJackWebAPI.Models
 {
-	public class GameHistory
+	public class GameHistoryd
 	{
 		public int Id { get; set; }
 		public int UserId { get; set; }

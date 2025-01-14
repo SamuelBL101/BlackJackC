@@ -4,6 +4,9 @@ using System.Diagnostics;
 
 namespace WPFBlackJack
 {
+	/// <summary>
+	/// Trieda reprezentujúca kartu v hre Blackjack.
+	/// </summary>
 	public class Blackjack : INotifyPropertyChanged
 	{
 		private decimal _hracBalance;
@@ -11,25 +14,53 @@ namespace WPFBlackJack
 		private int _idHraca;
 
 		public event PropertyChangedEventHandler PropertyChanged;
+		/// <summary>
+		/// Získa alebo nastaví balance hráča.
+		/// </summary>
 		public int HracBalance
 		{
 			get => (int)_hracBalance;
 			set => SetField(ref _hracBalance, value);
 		}
+		/// <summary>
+		/// Získa alebo nastaví aktuálnu stávku v hre.
+		/// </summary>
 		public int AktualnaStavka
 		{
 			get => _aktualnaStavka;
 			set => SetField(ref _aktualnaStavka, value);
 		}
+		/// <summary>
+		/// Identifikátor hráča.
+		/// </summary>
 		public int IdHraca => _idHraca;
 
+		/// <summary>
+		/// Zoznam rúk hráča (každá ruka je zoznam kariet).
+		/// </summary>
 		public List<List<Karta>> HracKarty { get; set; }
+
+		/// <summary>
+		/// Zoznam kariet dealera.
+		/// </summary>
 		public List<Karta> DealerKarty { get; set; }
+
+		/// <summary>
+		/// Zoznam kariet, ktoré sú v balíčku.
+		/// </summary>
 		public List<Karta> PotKarty { get; set; }
+
+		/// <summary>
+		/// Index aktuálnej ruky hráča (v prípade viacerých rúk).
+		/// </summary>
 		public int AktualnaRuka { get; set; }
+
 
 		private readonly Random _random = new();
 
+		/// <summary>
+		/// Konštruktor triedy Blackjack, inicializuje hráča a vytvára nový balíček kariet.
+		/// </summary>
 		public Blackjack(decimal Balance, int idhraca)
 		{
 			_idHraca = idhraca;
@@ -41,6 +72,9 @@ namespace WPFBlackJack
 			AktualnaStavka = 0;
 		}
 
+		// <summary>
+		/// Vytvorí nový balíček kariet pre hru.
+		/// </summary>
 		public List<Karta> VytvorKarty()
 		{
 			List<Karta> karty = new List<Karta>();
@@ -59,19 +93,31 @@ namespace WPFBlackJack
 			return karty;
 		}
 
+		/// <summary>
+		/// Vytiahne náhodnú kartu z balíčka.
+		/// </summary>
 		public Karta VytiahniKartu(List<Karta> karty)
 		{
+			if (karty.Count == 0)
+			{
+				karty = VytvorKarty();
+			}
+
 			int index = _random.Next(karty.Count);
 			Karta vytiahnutaKarta = karty[index];
 			karty.RemoveAt(index);
+
 			return vytiahnutaKarta;
 		}
 
+		/// <summary>
+		/// Vypočíta sumu hodnôt kariet v ruke (bez skrytých kariet).
+		/// </summary>
 		public int SumaKariet(List<Karta> karty)
 		{
 			int suma = 0;
 			int pocetAsov = 0;
-			foreach (var karta in karty)
+			foreach (var karta in karty.Where(k => !k.Skryta))
 			{
 				suma += karta.Hodnota;
 				if (karta.Hodnota == 11) pocetAsov++;
@@ -86,11 +132,17 @@ namespace WPFBlackJack
 			return suma;
 		}
 
+		/// <summary>
+		/// Pridá kartu do ruka hráča.
+		/// </summary>
 		public void Hit(int rukaIndex)
 		{
 			HracKarty[rukaIndex].Add(VytiahniKartu(PotKarty));
 		}
 
+		/// <summary>
+		/// Rozdá počiatočné karty hráčovi a dealerovi.
+		/// </summary>
 		public void Rozdanie(int Stavka)
 		{
 			AktualnaStavka = Stavka;
@@ -103,6 +155,10 @@ namespace WPFBlackJack
 			DealerKarty.Add(VytiahniKartu(karty));
 			DealerKarty.Add(VytiahniKartu(karty));
 		}
+
+		/// <summary>
+		/// Rozdá karty pre druhú variantu rozdania (rovnaké hodnoty kariet).
+		/// </summary>
 		public void Rozdanie2(int Stavka)
 		{
 			AktualnaStavka = Stavka;
@@ -110,7 +166,6 @@ namespace WPFBlackJack
 
 			var karty = PotKarty;
 
-			// Zabezpečíme, že hráč dostane pár
 			Karta prvaKarta = VytiahniKartu(karty);
 			Karta druhaKarta = VytiahniKartu(karty);
 
@@ -121,17 +176,17 @@ namespace WPFBlackJack
 
 			var prvaRuka = new List<Karta> { prvaKarta, druhaKarta };
 
-			HracKarty.Add(prvaRuka);  // Prvá ruka hráča
+			HracKarty.Add(prvaRuka);  
 
 			DealerKarty.Add(VytiahniKartu(karty));
 			DealerKarty.Add(VytiahniKartu(karty));
+			DealerKarty[1].Skryta = true;
 		}
 
 
-		public bool JePar(List<Karta> karty)
-		{
-			return karty.Count == 2 && karty[0].Hodnota == karty[1].Hodnota;
-		}
+		/// <summary>
+		/// Skontroluje, či je prvá ruka hráča pár.
+		/// </summary>
 		public bool JeParPrvejRuky()
 		{
 			if (HracKarty.Count > 0)
@@ -139,7 +194,6 @@ namespace WPFBlackJack
 				var firstHand = HracKarty[0];
 				if (firstHand.Count == 2)
 				{
-					// Check if the first two cards are of the same value
 					var isPair = firstHand[0].Hodnota == firstHand[1].Hodnota;
 					Debug.WriteLine($"Checking pair: {firstHand[0].Hodnota} vs {firstHand[1].Hodnota}, Result: {isPair}");
 					return isPair;
@@ -148,25 +202,14 @@ namespace WPFBlackJack
 			return false;
 		}
 
-
-		public void Split()
-		{
-			if (HracKarty.Count == 1 && HracKarty[0].Count == 2 && HracKarty[0][0].Hodnota == HracKarty[0][1].Hodnota)
-			{
-				var prvaRuka = new List<Karta> { HracKarty[0][0], VytiahniKartu(PotKarty) };
-				var druhaRuka = new List<Karta> { HracKarty[0][1], VytiahniKartu(PotKarty) };
-
-				HracKarty.Clear();
-				HracKarty.Add(prvaRuka);
-				HracKarty.Add(druhaRuka);
-			}
-		}
-
 		public void Reset()
 		{
 			HracKarty.Clear();
 			DealerKarty.Clear();
 		}
+		/// <summary>
+		/// Nastaví hodnotu vlastnosti pomocou setteru, pokiaľ sa hodnota zmenila.
+		/// </summary>
 		protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
 		{
 			if (EqualityComparer<T>.Default.Equals(field, value)) return false;
@@ -175,6 +218,9 @@ namespace WPFBlackJack
 			return true;
 		}
 
+		/// <summary>
+		/// Vyvolá událosť PropertyChanged, ak je niektorá vlastnosť aktualizovaná.
+		/// </summary>
 		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
 		{
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

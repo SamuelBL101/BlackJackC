@@ -1,7 +1,6 @@
 ﻿using LibShared;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using GameHistory = BlackJackWebAPI.Models.GameHistory;
 
 namespace WebAPI.Controllers
 {
@@ -16,13 +15,12 @@ namespace WebAPI.Controllers
 			_context = context;
 		}
 
-		// GET api/GameHistory/{userId}
 		[HttpGet("{userId}")]
 		public async Task<ActionResult<List<GameHistory>>> GetGameHistory(int userId)
 		{
+			
 			var gameHistory = await _context.GameHistories
 				.Where(g => g.UserId == userId)
-				.Include(g => g.User)
 				.ToListAsync();
 
 			if (gameHistory == null || gameHistory.Count == 0)
@@ -33,7 +31,6 @@ namespace WebAPI.Controllers
 			return Ok(gameHistory);
 		}
 
-		// GET api/GameHistory/all
 		[HttpGet("all")]
 		public async Task<ActionResult<List<User>>> GetAllUsers()
 		{
@@ -45,6 +42,19 @@ namespace WebAPI.Controllers
 			}
 
 			return Ok(users);
+		}
+		[HttpPost]
+		public async Task<ActionResult<GameHistory>> SaveGameHistory([FromBody] GameHistory gameHistory)
+		{
+			if (gameHistory == null)
+			{
+				return BadRequest("Invalid game history data.");
+			}
+
+			_context.GameHistories.Add(gameHistory);
+			await _context.SaveChangesAsync();
+
+			return CreatedAtAction(nameof(GetGameHistory), new { userId = gameHistory.UserId }, gameHistory);
 		}
 	}
 }

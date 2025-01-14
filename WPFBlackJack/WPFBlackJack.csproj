@@ -24,4 +24,9 @@
     <Folder Include="Images\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BlackJackWebAPI\BlackJackWebAPI.csproj" />
+    <ProjectReference Include="..\LibShared\LibShared.csproj" />
+  </ItemGroup>
+
 </Project>
